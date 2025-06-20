@@ -21,6 +21,7 @@ def run():
     tracks = []
     robot = Robot(0, 0, np.pi / 2, stop_dist=1.0)
     dt = 0.1
+    follower_id = None
 
     fig, ax = plt.subplots()
     ax.set_xlim(walls[0], walls[1])
@@ -31,7 +32,28 @@ def run():
     ax.add_patch(tab)
     person_plots = [ax.plot([], [], "o", markersize=8)[0] for _ in persons]
     robot.add_to_ax(ax)
-    follower_text = ax.text(walls[0] + 0.5, walls[3] - 0.5, "", fontsize=12)
+    follower_text = ax.text(
+        walls[0] + 0.5, walls[3] - 0.5, "Click a person to follow", fontsize=12
+    )
+
+    for p, pp in zip(persons, person_plots):
+        pp.set_data([p.pos[0]], [p.pos[1]])
+
+    def on_click(event):
+        nonlocal follower_id
+        if event.inaxes != ax or follower_id is not None:
+            return
+        click = np.array([event.xdata, event.ydata])
+        dists = [np.linalg.norm(p.pos - click) for p in persons]
+        follower_id = persons[int(np.argmin(dists))].id
+        follower_text.set_text(f"Following: P{follower_id}")
+        for p, pp in zip(persons, person_plots):
+            pp.set_markerfacecolor("red" if p.id == follower_id else "blue")
+
+    cid = fig.canvas.mpl_connect("button_press_event", on_click)
+    while follower_id is None:
+        plt.pause(0.1)
+    fig.canvas.mpl_disconnect(cid)
 
     def init():
         return person_plots + [robot.patch, follower_text]
@@ -39,7 +61,7 @@ def run():
     def animate(_):
         nonlocal tracks
         for p, pp in zip(persons, person_plots):
-            p.update(dt, persons, obstacles, walls)
+            p.update(dt, persons, obstacles, walls, robot.pose[:2], robot.radius)
             pp.set_data([p.pos[0]], [p.pos[1]])
         meas_list = sensor.scan(persons, robot.pose[:2], obstacles, walls)
         preds = [t.predict(persons[t.id].u) for t in tracks]
@@ -66,13 +88,16 @@ def run():
             line.remove()
         for t in tracks:
             ax.plot([t.x[0]], [t.x[1]], "gx")
-        follower = max(persons, key=lambda p: p.pos[1])
-        follower_text.set_text(f"Following: P{follower.id}")
-        for p, pp in zip(persons, person_plots):
-            pp.set_markerfacecolor("red" if p.id == follower.id else "blue")
-        ttrack = next((t for t in tracks if t.id == follower.id), None)
-        if ttrack:
-            robot.move_towards(ttrack.x[:2], persons[follower.id].u, dt, persons, obstacles, walls)
+        follower = next((p for p in persons if p.id == follower_id), None)
+        if follower:
+            follower_text.set_text(f"Following: P{follower.id}")
+            for p, pp in zip(persons, person_plots):
+                pp.set_markerfacecolor("red" if p.id == follower.id else "blue")
+            ttrack = next((t for t in tracks if t.id == follower.id), None)
+            if ttrack:
+                robot.move_towards(
+                    ttrack.x[:2], persons[follower.id].u, dt, persons, obstacles, walls
+                )
         robot.update_patch()
         return person_plots + [robot.patch, follower_text]
 
