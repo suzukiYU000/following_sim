@@ -8,13 +8,12 @@ import numpy as np
 class Person:
     """Simple agent with obstacle avoidance behavior."""
 
-    def __init__(self, pid: int, x: float, y: float):
+    def __init__(self, pid: int, x: float, y: float, speed: float = 0.5, radius: float = 0.3):
         self.id = pid
         self.pos = np.array([x, y], dtype=float)
         angle = np.random.uniform(0, 2 * np.pi)
-        speed = 0.5
         self.u = np.array([np.cos(angle) * speed, np.sin(angle) * speed])
-        self.radius = 0.3
+        self.radius = radius
 
     def update(
         self,

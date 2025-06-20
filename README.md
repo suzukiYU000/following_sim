@@ -24,4 +24,4 @@ Execute the simulation with:
 python main.py
 ```
 
-A window will open showing the initial positions of all persons. Click on one of them to choose the target to follow. The robot will then attempt to follow that person while avoiding obstacles and other people.
+Parameters for the simulation are stored in `config.yaml`. Modify this file to change the environment or robot behavior. A window will open showing the initial positions of all persons. Click on one of them to choose the target to follow. The robot will then attempt to follow that person while avoiding obstacles and other people.

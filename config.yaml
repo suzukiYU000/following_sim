@@ -1,0 +1,22 @@
+random_seed: 0
+walls: [-9.5, 9.5, -9.5, 9.5]
+table:
+  - [3, -1]
+  - [5, 1]
+num_persons: 5
+person:
+  speed: 0.5
+  radius: 0.3
+sensor:
+  noise_std: 0.2
+robot:
+  x: 0.0
+  y: 0.0
+  theta: 1.57079632679
+  kp_dist: 1.0
+  kp_angle: 2.0
+  stop_dist: 1.0
+sim:
+  dt: 0.1
+  frames: 200
+  interval: 100

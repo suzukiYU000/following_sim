@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from scipy.optimize import linear_sum_assignment
+import yaml
 
 from .person import Person
 from .sensor import Sensor
@@ -11,16 +12,43 @@ from .tracker import KalmanTrack
 from .robot import Robot
 
 
-def run():
-    np.random.seed(0)
-    walls = (-9.5, 9.5, -9.5, 9.5)
-    table = (np.array([3, -1]), np.array([5, 1]))
+def run(config_path: str = "config.yaml"):
+    with open(config_path, "r") as f:
+        cfg = yaml.safe_load(f)
+
+    np.random.seed(cfg.get("random_seed", 0))
+    walls = tuple(cfg.get("walls", [-9.5, 9.5, -9.5, 9.5]))
+    table_cfg = cfg.get("table", [[3, -1], [5, 1]])
+    table = (np.array(table_cfg[0]), np.array(table_cfg[1]))
     obstacles = [table]
-    persons = [Person(i, np.random.uniform(-5, 5), np.random.uniform(-5, 5)) for i in range(5)]
-    sensor = Sensor(noise_std=0.2)
+
+    pcfg = cfg.get("person", {})
+    num_persons = cfg.get("num_persons", 5)
+    persons = [
+        Person(
+            i,
+            np.random.uniform(-5, 5),
+            np.random.uniform(-5, 5),
+            speed=pcfg.get("speed", 0.5),
+            radius=pcfg.get("radius", 0.3),
+        )
+        for i in range(num_persons)
+    ]
+
+    sensor = Sensor(noise_std=cfg.get("sensor", {}).get("noise_std", 0.2))
     tracks = []
-    robot = Robot(0, 0, np.pi / 2, stop_dist=1.0)
-    dt = 0.1
+
+    rcfg = cfg.get("robot", {})
+    robot = Robot(
+        rcfg.get("x", 0),
+        rcfg.get("y", 0),
+        rcfg.get("theta", np.pi / 2),
+        kp_dist=rcfg.get("kp_dist", 1.0),
+        kp_angle=rcfg.get("kp_angle", 2.0),
+        stop_dist=rcfg.get("stop_dist", 1.0),
+    )
+
+    dt = cfg.get("sim", {}).get("dt", 0.1)
     follower_id = None
 
     fig, ax = plt.subplots()
@@ -101,7 +129,15 @@ def run():
         robot.update_patch()
         return person_plots + [robot.patch, follower_text]
 
-    ani = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=100, blit=True)
+    sim_cfg = cfg.get("sim", {})
+    ani = animation.FuncAnimation(
+        fig,
+        animate,
+        init_func=init,
+        frames=sim_cfg.get("frames", 200),
+        interval=sim_cfg.get("interval", 100),
+        blit=True,
+    )
     plt.show()
 
 
